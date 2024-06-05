@@ -11,7 +11,7 @@ Komponenten kommunizieren über eine skalierbare Middleware, um
 entsprechende Vervielfachung des Webseiten-Verkehrs abbilden zu können.
 
 
-###Details:
+### Details:
  - Einfaches Frontend. bwin.de und tipico.de sind nicht über Nacht
 entstanden. Falls ihr Live-Ereignisse modellieren wollt: Pluspunkt!
 Andernfalls genügt eine einfach Modellierung wie z.B. Fußball-Toto.
