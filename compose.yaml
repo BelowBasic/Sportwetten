@@ -1,0 +1,11 @@
+services:
+  backend:
+    build:
+        context: ./backend
+  frontend:
+    build:
+        context: ./frontend
+    ports:
+      - "8080:80"
+  redis:
+    image: "redis:alpine"
