@@ -9,5 +9,7 @@ services:
       - "8080:5000"
   redis:
     image: "redis:alpine"
-  rabbitmq:
-    image: "rabbitmq:alpine"
+    ports: 
+      - "6379:6379"
+ # rabbitmq:
+ #   image: "rabbitmq:alpine"
