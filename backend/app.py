@@ -62,8 +62,9 @@ async def get_frequency(cache,team_a,team_b,bet):
     team_names = sorted([winner,loser])
     key = team_names[0]+":"+team_names[1]
     try:
-         results = await cache.get(key)
+        results = await cache.get(key)
     except redis.exceptions.ConnectionError as exc:
+            return False
     if team_a == team_names[0]
         team_a_results = int(results.get(b'team_a_wins',0))
         team_b_results = int(results.get(b'team_b_wins',0))
