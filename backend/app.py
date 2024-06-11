@@ -65,7 +65,7 @@ async def get_frequency(cache,team_a,team_b,bet):
         results = await cache.get(key)
     except redis.exceptions.ConnectionError as exc:
             return False
-    if team_a == team_names[0]
+    if team_a == team_names[0]:
         team_a_results = int(results.get(b'team_a_wins',0))
         team_b_results = int(results.get(b'team_b_wins',0))
     else:
@@ -74,19 +74,17 @@ async def get_frequency(cache,team_a,team_b,bet):
     tie = int(results.get(b'tie',0))
     game_total =  team_a_results + team_b_results + tie
     match bet:
-    case 'a':
-        winner = team_a
-    case 'b':
-        winner = team_b
-    case 't':
-        return game_total/tie
-    case _:
-        logging.error("Bet key invalid")
-        return False
+        case 'a':
+            winner = team_a
+        case 'b':
+            winner = team_b
+        case 't':
+            return game_total/tie
+        case _:
+            logging.error("Bet key invalid")
+            return False
     return game_total/winner
 
-def return_result(winner,loser,result)
-   
 
 async def consume_queues(channel):
     channel.basic_consume(queue='frequency',
@@ -98,12 +96,8 @@ async def consume_queues(channel):
     
 def main():
     redis_pool = redis.ConnectionPool.from_url("redis://redis")
-    cache_games(datetime.datetime.now().year)
-    #connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', 5672,
-    #                                   '/',))
-    #channel = connection.channel()
     connection_1 = redis.Redis(connection_pool=redis_pool)
-    asyncio.run(calculate_frequency(connection_1))
+    asyncio.run(init_results(connection_1))
 
     #consume_queues(channel)
     #asyncio.run(init_redis_pool())
