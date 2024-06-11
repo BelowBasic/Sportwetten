@@ -3,25 +3,11 @@ import requests
 import redis.asyncio as redis
 import pika
 import datetime
+import logging
 
-def cache_games(year):
-    cache = redis.Redis(host='redis', port=6379)
-    game_data_api_url = "https://api.openligadb.de/getmatchdata/bl1/"
-    resp = requests.get( game_data_api_url+str(year))
-    games = resp.json()
-    for game in games:
-        game.get("")
 
-async def get_games():
-        while True:
-            try:
-                return cache.get(body)
-            except redis.exceptions.ConnectionError as exc:
-                if retries == 0:
-                    raise exc
-    
 async def init_results(cache):
-    """Reads"""
+    """Reads all Results from opelnliigadb.de for the Bundeliga from the current year Back until there is no data available and saves the amount of wins into redis using the alphabetical ordered Teams as key eg "1. FC Nürnberg:Zwickauer FC"  team_a """
     print("Backend Running")
     year = datetime.datetime.now().year
     game_data_api_url = "https://api.openligadb.de/getmatchdata/bl1/"
@@ -71,16 +57,34 @@ async def init_results(cache):
         x=x-1
     print("init finished")
     
-async def give_frequency(cache,team_a,team_b,bet):
-    """ """
-        team_names = sorted([team_a,team_b])
-        key = team_names[0]+":"+team_names[1]
-        try:
-             results = await cache.get(key)
-        except redis.exceptions.ConnectionError as exc:
-        if team_names[0] == team_a:
-            devisor =             
+async def get_frequency(cache,team_a,team_b,bet):
+    """gets the result statistics from redis and returns a multiplier bet 'a' menas a win 'b' team b win and 't' tie """
+    team_names = sorted([winner,loser])
+    key = team_names[0]+":"+team_names[1]
+    try:
+         results = await cache.get(key)
+    except redis.exceptions.ConnectionError as exc:
+    if team_a == team_names[0]
+        team_a_results = int(results.get(b'team_a_wins',0))
+        team_b_results = int(results.get(b'team_b_wins',0))
+    else:
+        team_b_results = int(results.get(b'team_a_wins',0))
+        team_a_results = int(results.get(b'team_b_wins',0))
+    tie = int(results.get(b'tie',0))
+    game_total =  team_a_results + team_b_results + tie
+    match bet:
+    case 'a':
+        winner = team_a
+    case 'b':
+        winner = team_b
+    case 't':
+        return game_total/tie
+    case _:
+        logging.error("Bet key invalid")
+        return False
+    return game_total/winner
 
+def return_result(winner,loser,result)
    
 
 async def consume_queues(channel):
