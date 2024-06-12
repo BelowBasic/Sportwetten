@@ -1,15 +1,26 @@
+version: '3.8'
+
 services:
   backend:
     build:
-        context: ./backend
+      context: ./backend
+    ports:
+      - "5000:5000"
+
   frontend:
     build:
-        context: ./frontend
+      context: ./sportwetten_frontend
+    environment:
+      NODE_ENV: production
     ports:
-      - "8080:5000"
+      - "8000:3000" # Mapping port 3000 of container to 8000 on host
+
   redis:
     image: "redis:alpine"
-    ports: 
+    ports:
       - "6379:6379"
- # rabbitmq:
- #   image: "rabbitmq:alpine"
+
+  # rabbitmq:
+  #   image: "rabbitmq:alpine"
+  #   ports:
+  #     - "5672:5672"
