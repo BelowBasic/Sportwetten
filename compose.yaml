@@ -7,6 +7,21 @@ services:
     ports:
       - "5001:5001" # Mapping port 5001 of container to 5001 on host
 
+  backend_repl:
+    build:
+      context: ./backend_repl
+    ports:
+      - "5002:5001" # Mapping port 5002 of container to 5002 on host
+
+  nginx:
+    build:
+      context: ./nginx_load_balancer
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+      - backend_repl
+
   frontend:
     build:
       context: ./sportwetten_frontend
