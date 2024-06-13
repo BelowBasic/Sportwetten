@@ -6,7 +6,7 @@ services:
       context: ./backend
     ports:
       - "5000:5000"
-
+    replicas: 0
   frontend:
     build:
       context: ./sportwetten_frontend
@@ -19,7 +19,8 @@ services:
     image: "redis:alpine"
     ports:
       - "6379:6379"
-
+    volumes: 
+      - ./redis_data:/data:z
   # rabbitmq:
   #   image: "rabbitmq:alpine"
   #   ports:

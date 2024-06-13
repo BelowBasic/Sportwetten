@@ -1,21 +1,96 @@
-import asyncio
+# import asyncio
 import requests
-import redis.asyncio as redis
-import pika
+import redis as redis
 import datetime
 import logging
+import random
+
+from flask import Flask
+from flask import request
+
+app = Flask(__name__)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+redis_pool = None
 
+@app.route("/bet",methods=['POST'])
+def bet():
+    team_a = request.json.get("team_a")
+    team_b = request.json.get("team_b")
+    stake = request.json.get("stake")
+    bet = request.json.get("bet")
+    freq = get_frequency(team_a,team_b,bet)
+    num = random.randint(0,100)
+    if round((1/freq)*100) < num:
+        multiplier = 1
+    else:
+        multiplier = 0
 
-async def init_results(cache):
-    """Reads all Results from openligadb.de for the Bundesliga from the current year Back until there is no
-     data available and saves the amount of wins into redis using the alphabetical ordered Teams as key
-     eg "1. FC Nürnberg:Zwickauer FC"  team_a """
-    logging.info("Backend Running")
+    return {"result": freq*stake*multiplier}
+    
+@app.route("/game_list",methods=['GET'])
+def game_list():
+    return get_current_season()
+    
+
+def get_current_season():
     year = datetime.datetime.now().year
     game_data_api_url = "https://api.openligadb.de/getmatchdata/bl1/"
     x = year
+    response_dict = []
+    game_list = []
+    while True:
+        logging.debug(x)
+        resp = requests.get(game_data_api_url + str(x))
+        games = resp.json()
+        if len(games) <= 0:
+            logging.debug(x)
+            x = x - 1
+        else:
+            for game in games:
+                if isinstance(game,list):
+                    logging.debug("Hä??")
+                    break
+                logging.debug(game)
+                team1_name = game.get("team1", {}).get("teamName")
+                team2_name = game.get("team2", {}).get("teamName")
+                team_names = sorted([team1_name, team2_name])
+                if team_names in game_list:
+                    leg = "return"
+                else: 
+                    leg = "first"
+                multiplier_win_a = get_frequency( team1_name,team2_name , "a")
+                multiplier_win_b = get_frequency( team1_name,team2_name , "b")
+                multiplier_tie = get_frequency( team1_name,team2_name , "t")
+                games.append(team_names)
+                response_dict.append({
+                    "team_a": team_names[0],
+                    "team_b": team_names[1],
+                    "multiplier_win_a": multiplier_win_a,
+                    "multiplier_win_b": multiplier_win_b,
+                    "multiplier_tie": multiplier_tie,
+                    "leg" : leg  })
+            return response_dict
+
+
+def start_flask():
+    app.run(debug=True, port=5000, host="0.0.0.0")
+
+
+def init_results():
+    """Reads all Results from openligadb.de for the Bundesliga from the current year Back until there is no
+     data available and saves the amount of wins into redis using the alphabetical ordered Teams as key
+     eg "1. FC Nürnberg:Zwickauer FC"  team_a """
+    cache = redis.Redis(connection_pool=redis_pool)
+    logging.info("Backend Running")
+    init_status = cache.get("init_status")
+    if str(init_status) == "finished":
+        logging.info("init already ran ")
+        return 
+    year = datetime.datetime.now().year
+    game_data_api_url = "https://api.openligadb.de/getmatchdata/bl1/"
+    x = year
+    i = 0 
     while True:
         logging.info(f"Processing year: {x}")
         try:
@@ -37,7 +112,7 @@ async def init_results(cache):
                 team2_name = game.get("team2", {}).get("teamName")
                 logging.info(f"Processing game: {team1_name} vs {team2_name}")
                 results = game.get("matchResults", [])
-
+            # check if a result is already there (the game has concluded)
                 if len(results) > 0:
                     endresult = results[-1]
                     team1_points = endresult.get("pointsTeam1")
@@ -48,7 +123,7 @@ async def init_results(cache):
                     teams = dict(sorted(teams.items()))
                     result_data = await cache.hgetall(key)
                     logging.info(f"Processing game: {team1_name} vs {team2_name}")
-
+                # If team combination does not exists intialize result_data with a dict with 0 wins and ties
                     if not isinstance(result_data, dict):
                         result_data = {
                             b'team_a_wins': 0,
@@ -78,7 +153,7 @@ async def init_results(cache):
 async def get_frequency(cache, team_a, team_b, bet):
     """gets the result statistics from redis and returns a multiplier bet
     'a' means a wins, 'b' team b wins and 't' means tie """
-    team_names = sorted([winner, loser])
+    team_names = sorted([team_a, team_b])
     key = team_names[0] + ":" + team_names[1]
     try:
         results = await cache.get(key)
@@ -89,53 +164,36 @@ async def get_frequency(cache, team_a, team_b, bet):
         logging.error(f"Redis connection error: {exc}")
         return False
     if team_a == team_names[0]:
-        team_a_results = int(results.get(b'team_a_wins', 0))
-        team_b_results = int(results.get(b'team_b_wins', 0))
+        team_a_results = int(results.get(b"team_a_wins", 1))
+        team_b_results = int(results.get(b"team_b_wins", 1))
     else:
-        team_b_results = int(results.get(b'team_a_wins', 0))
-        team_a_results = int(results.get(b'team_b_wins', 0))
-    tie = int(results.get(b'tie', 0))
+        team_b_results = int(results.get(b"team_a_wins", 1))
+        team_a_results = int(results.get(b"team_b_wins", 1))
+    tie = int(results.get(b"tie", 1))
     game_total = team_a_results + team_b_results + tie
     match bet:
-        case 'a':
-            winner = team_a
-        case 'b':
-            winner = team_b
-        case 't':
-            return game_total/tie
+        case "a":
+            winner = team_a_results
+        case "b":
+            winner = team_b_results
+        case "t":
+            return game_total / tie
         case _:
             logging.error("Bet key invalid")
             return False
-    return game_total/winner
+    return game_total / winner
 
 
-async def consume_queues(channel):
-    channel.basic_consume(queue='frequency',
-                      auto_ack=True,
-                      on_message_callback=get_frequency)
-    channel.basic_consume(queue='games',
-                      auto_ack=True,
-                      on_message_callback=get_game)
-    
+
 
 def main():
+    global redis_pool
     redis_pool = redis.ConnectionPool.from_url("redis://redis")
-    connection_1 = redis.Redis(connection_pool=redis_pool)
-    asyncio.run(init_results(connection_1))
+    init_results()
+    start_flask()
 
-    # consume_queues(channel)
-    # asyncio.run(init_redis_pool())
+  
 
 
-async def init_redis_pool():
-    while True:
-        events = await pool.xread(['wins_stream'], latest_ids=[last_id], timeout=0, count=10)
-        # Process each event by calling `add_new_win`
-        for _, e_id, e in events:
-            winner = e['winner']
-            await add_new_win(pool, winner)
-            last_id = e_id
-            
 if __name__ == "__main__":
-    main() 
-
+    main()
