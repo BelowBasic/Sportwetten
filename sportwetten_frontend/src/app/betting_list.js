@@ -16,15 +16,30 @@ function BettingListEntry ({ entry, onDelete, onChange }) {
     }
 
     function handleSubmitOnClick() {
-        if (setBetAmount <= 0) {
-            alert("Bitte Wettbetrag eingeben")
-        }
+        postBody = {
+            teama: entry.team_a,
+            teamb: entry.team_b,
+            wettbetrag: betAmount,
+            wette: betResult === 0 ? "a" : betResult === 1 ? "b" : "t"
+        };
+        const requestOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postBody)
+        };
+        fetch('http://localhost:5000/Year', requestOptions)
+        .then(response => response.json())
+        .then(data => {
+            setEntryState(2);
+            // @Sören hier die values für state=2 setzen.
+        });
 
 
-        setEntryState(2);
+        
     }
 
     function handleDoneOnClick() {
+
         setEntryState(0);
     }
 
@@ -35,13 +50,13 @@ function BettingListEntry ({ entry, onDelete, onChange }) {
                 <div onClick={handleStartOnClick} className='hover:text-blue-600 cursor-pointer flex flex-col max-w-sm mx-auto'>
                     <div className="flex space-x-2 ">
                         <div className="">
-                            {entry.team1}
+                            {entry.team_a}
                         </div>
                         <div className="grow-0">
                             VS
                         </div>
                         <div className="">
-                            {entry.team2}
+                            {entry.team_b}
                         </div>
                     </div>
                 </div>
@@ -51,13 +66,13 @@ function BettingListEntry ({ entry, onDelete, onChange }) {
                 <div className='flex flex-col max-w-sm mx-auto'>
                     <div className="flex space-x-2 mb-5 mt-1">
                         <div className="">
-                            {entry.team1}
+                            {entry.team_a}
                         </div>
                         <div className="grow-0">
                             VS
                         </div>
                         <div className="">
-                            {entry.team2}
+                            {entry.team_b}
                         </div>
                     </div>
                     <div className='relative z-0 w-full mb-5 group'>
@@ -77,21 +92,21 @@ function BettingListEntry ({ entry, onDelete, onChange }) {
                     </div>
 
                     <div className='mb-5'>
-                        {`Wettmultiplikator: ${entry.rate}x`}
+                        {`Wettmultiplikator: ${entry.multipliplier}x`}
                     </div>
                     <div className='mb-5'>
-                        {`Möglicher Gewinn: ${entry.rate*betAmount ? (entry.rate*betAmount).toFixed(2) : 0}`}
+                        {`Möglicher Gewinn: ${entry.multipliplier*betAmount ? (entry.multipliplier*betAmount).toFixed(2) : 0}`}
                     </div>
 
                     
 
                     <div className="flex items-center mb-4">
                         <input checked={betResult === 0} onChange={(e) => setBetResult(0)} id="default-radio-1" type="radio" value="" name="bet-result" className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2 "/>
-                        <label htmlFor="default-radio-1" className="ms-2 text-sm font-medium text-gray-900">{`${entry.team1} gewinnt`}</label>
+                        <label htmlFor="default-radio-1" className="ms-2 text-sm font-medium text-gray-900">{`${entry.team_a} gewinnt`}</label>
                     </div>
                     <div className="flex items-center mb-4">
                         <input checked={betResult === 1} onChange={(e) => setBetResult(1)} id="default-radio-2" type="radio" value="" name="bet-result" className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2 "/>
-                        <label htmlFor="default-radio-2" className="ms-2 text-sm font-medium text-gray-900">{`${entry.team2} gewinnt`}</label>
+                        <label htmlFor="default-radio-2" className="ms-2 text-sm font-medium text-gray-900">{`${entry.team_b} gewinnt`}</label>
                     </div>
                     <div className="flex items-center mb-5">
                         <input checked={betResult === 2} onChange={(e) => setBetResult(2)} id="default-radio-3" type="radio" value="" name="bet-result" className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2 "/>
@@ -130,10 +145,29 @@ function BettingListEntry ({ entry, onDelete, onChange }) {
 
 
 export default function BettingList() {
+    /*
     const [entries, setEntries] = useState([
-        { id: 1, team1: "Bayern", team2: "Eintracht Frankfurt", rate: 2.2 },
-        { id: 2, team1: "Köln", team2: "Dortmund", rate: 3.0 }
+        { id: 1, team_a: "Bayern", team_b: "Eintracht Frankfurt", multipliplier: 2.2 },
+        { id: 2, team_a: "Köln", team_b: "Dortmund", multipliplier: 3.0 }
     ]);
+    */
+    const [entries, setEntries] = useState([])
+    useEffect(() => {
+        fetch('http://localhost:5000/Year')
+          .then((res) => {
+            i = 0
+            return res.json().forEach(element => {
+                element.id = i++
+            });
+          })
+          .then((data) => {
+            console.log(data);
+            setEntries(data);
+          });
+      }, []);
+
+
+
 
     const handleDelete = (id) => {
         setEntries(entries.filter(entry => entry.id !== id));
@@ -148,7 +182,7 @@ export default function BettingList() {
         <div>
             {entries.map(entry => (
                 <BettingListEntry 
-                    key={entry.id} 
+                    key={1} 
                     entry={entry} 
                     onDelete={() => handleDelete(entry.id)} 
                     onChange={handleChange}
