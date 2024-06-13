@@ -1,4 +1,4 @@
 flask
+flask[async]
 redis
-pika
 requests

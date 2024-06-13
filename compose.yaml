@@ -1,22 +1,23 @@
-version: '3.8'
+#version: '3.8'
 
 services:
   backend:
     build:
       context: ./backend
     ports:
-      - "5001:5001" # Mapping port 5001 of container to 5001 on host
-
-  frontend:
-    build:
-      context: ./sportwetten_frontend
-    environment:
-      NODE_ENV: production
-    ports:
-      - "8000:3000" # Mapping port 3000 of container to 8000 on host
-
+      - "5000:5000" # Mapping port 5000 of container to 5000 on host
+    replicas: 0
+  #frontend:
+   # build:
+    #  context: ./sportwetten_frontend
+   # environment:
+    #  NODE_ENV: production
+   # ports:
+      #- "8000:3000" # Mapping port 3000 of container to 8000 on host
   redis:
     image: "redis:alpine"
+    volumes: 
+      - ./redis_data:/data:z
     ports:
       - "6379:6379"
 
