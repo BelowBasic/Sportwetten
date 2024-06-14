@@ -7,13 +7,13 @@ services:
     ports:
       - "5000:5000"
     replicas: 0
-  frontend:
-    build:
-      context: ./sportwetten_frontend
-    environment:
-      NODE_ENV: production
-    ports:
-      - "8000:3000" # Mapping port 3000 of container to 8000 on host
+  #frontend:
+   # build:
+    #  context: ./sportwetten_frontend
+    #environment:
+     # NODE_ENV: production
+    #ports:
+     # - "8000:3000" # Mapping port 3000 of container to 8000 on host
 
   redis:
     image: "redis:alpine"
@@ -25,3 +25,10 @@ services:
   #   image: "rabbitmq:alpine"
   #   ports:
   #     - "5672:5672"
+  nginx:
+    build:
+      context: ./nginx_load_balancer
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend

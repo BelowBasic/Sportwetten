@@ -19,6 +19,7 @@ def bet():
     team_b = request.json.get("team_b")
     stake = request.json.get("stake")
     bet = request.json.get("bet")
+    
     freq = get_frequency(team_a,team_b,bet)
     num = random.randint(0,100)
     if round((1/freq)*100) < num:
@@ -110,7 +111,7 @@ def init_results():
             try:
                 team1_name = game.get("team1", {}).get("teamName")
                 team2_name = game.get("team2", {}).get("teamName")
-                logging.info(f"Processing game: {team1_name} vs {team2_name}")
+           # logging.debug(team1_name)
                 results = game.get("matchResults", [])
             # check if a result is already there (the game has concluded)
                 if len(results) > 0:
@@ -118,51 +119,59 @@ def init_results():
                     team1_points = endresult.get("pointsTeam1")
                     team2_points = endresult.get("pointsTeam2")
                     team_names = sorted([team1_name, team2_name])
-                    key = team_names[0]+":"+team_names[1]
+                    key = team_names[0] + ":" + team_names[1]
                     teams = {team1_name: team1_points, team2_name: team2_points}
                     teams = dict(sorted(teams.items()))
-                    result_data = await cache.hgetall(key)
-                    logging.info(f"Processing game: {team1_name} vs {team2_name}")
-                # If team combination does not exists intialize result_data with a dict with 0 wins and ties
+                    result_data = cache.hgetall(key)
+                    logging.debug(key)
+                    logging.debug(result_data)
+                # If team combinatio does not exists intialize result data with a
                     if not isinstance(result_data, dict):
-                        result_data = {
-                            b'team_a_wins': 0,
-                            b'team_b_wins': 0,
-                            b'tie': 0,
+                       result_data = {
+                            b"team_a_wins": 0,
+                            b"team_b_wins": 0,
+                            b"tie": 0,
                         }
                     else:
-                        print(result_data)
+                       logging.debug(result_data)
+                    # check which team one
                     if list(teams.values())[0] > list(teams.values())[1]:
-                        result_data.update({b'team_a_wins': int(result_data.get(b'team_a_wins', 0)) + 1})
+                        result_data.update(
+                            {b"team_a_wins": int(result_data.get(b"team_a_wins", 1)) + 1}
+                        )
                     else:
                         if list(teams.values())[0] == list(teams.values())[1]:
-                            result_data.update({b'tie': int(result_data.get(b'tie', 0)) + 1})
+                            result_data.update(
+                                {b"tie": int(result_data.get(b"tie", 1)) + 1}
+                            )
                         else:
-                            result_data.update({b'team_b_wins': int(result_data.get(b'team_b_wins', 0)) + 1})
-                    await cache.hset(key, mapping=result_data)
+                            result_data.update(
+                               {
+                                 b"team_b_wins": int(result_data.get(b"team_b_wins", 0))
+                                 + 1
+                                }
+                            )
+                    cache.hset(key, mapping=result_data)
                 else:
                     break
+                
             except Exception as e:
                 logging.error(f"Error processing game data: {e}")
                 continue
+            x = x-1
 
-        x = x-1
+    cache.set("init_status", "finished")    
+    cache.close()
     logging.info("init finished")
 
 
-async def get_frequency(cache, team_a, team_b, bet):
+def get_frequency(team_a, team_b, bet):
     """gets the result statistics from redis and returns a multiplier bet
     'a' means a wins, 'b' team b wins and 't' means tie """
+    cache = redis.Redis(connection_pool=redis_pool)
     team_names = sorted([team_a, team_b])
     key = team_names[0] + ":" + team_names[1]
-    try:
-        results = await cache.get(key)
-        if not results:
-            logging.error(f"No data found for key: {key}")
-            return False
-    except redis.exceptions.ConnectionError as exc:
-        logging.error(f"Redis connection error: {exc}")
-        return False
+    results = cache.hgetall(key)
     if team_a == team_names[0]:
         team_a_results = int(results.get(b"team_a_wins", 1))
         team_b_results = int(results.get(b"team_b_wins", 1))
@@ -182,7 +191,6 @@ async def get_frequency(cache, team_a, team_b, bet):
             logging.error("Bet key invalid")
             return False
     return game_total / winner
-
 
 
 
