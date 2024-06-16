@@ -23,3 +23,13 @@ legen (z. B. Skalierung => die einzelnen Microservices laufen auf
 unterschiedlichen Rechnern => ebenfalls höhere Ausfallsicherheit).
 • Paketierung aller Komponenten in Containern, die auf einer OCI-
 konformen Container-Runtime ausgeführt werden.
+
+# Running the Application
+
+Go to the Project directory and execute these two commands.
+
+```
+docker compose build
+docker compose up -d
+```
+
