@@ -5,26 +5,14 @@ services:
     build:
       context: ./backend
     ports:
-      - "5000:5000"
-    replicas: 0
-  #frontend:
-   # build:
-    #  context: ./sportwetten_frontend
-    #environment:
-     # NODE_ENV: production
-    #ports:
-     # - "8000:3000" # Mapping port 3000 of container to 8000 on host
-
-  redis:
-    image: "redis:alpine"
+      - "5001:5000" # Mapping port 5001 of container to 5001 on host
+  
+  backend_repl:
+    build:
+      context: ./backend
     ports:
-      - "6379:6379"
-    volumes: 
-      - ./redis_data:/data:z
-  # rabbitmq:
-  #   image: "rabbitmq:alpine"
-  #   ports:
-  #     - "5672:5672"
+      - "5002:5001" # Mapping port 5002 of container to 5002 on host
+
   nginx:
     build:
       context: ./nginx_load_balancer
@@ -32,3 +20,17 @@ services:
       - "8080:80"
     depends_on:
       - backend
+      - backend_repl
+      
+  frontend:
+    build:
+      context: ./sportwetten_frontend
+    environment:
+      NODE_ENV: production
+    ports:
+      - "8000:3000" # Mapping port 3000 of container to 8000 on host
+
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
